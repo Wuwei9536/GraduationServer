@@ -9,11 +9,13 @@ class UserSystem(models.Model):
     # 密码
     password = models.CharField(default='123456', max_length=20)
     # 登陆状态 默认0：离线  1:登陆
-    status = models.IntegerField(max_length=1, default=0)
-    homedirectory = models.CharField(max_length=30)
-    groupname = models.CharField(max_length=30)
+    status = models.IntegerField(default=0)
+    homedirectory = models.CharField(max_length=30, blank=True)
+    groupname = models.CharField(max_length=30, blank=True)
     create_time = models.DateTimeField(auto_now_add=True)
-    update_time = models.DateTimeField(auto_now_add=True)
+    update_time = models.DateTimeField(auto_now=True)
+
+    manager = models.Manager()
 
     class Meta:
         db_table = 'user_sys'  # 自定义表名称为user_sys
