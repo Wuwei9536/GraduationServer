@@ -6,8 +6,6 @@ urlpatterns = [
     path('login', views.login),
     # 创建系统用户
     path('createsystemuser', views.createSystemUser),
-    # 获取设备列表
-    path('equipment', views.getEquipmentData),
     # 获取系统用户
     path('getsystemuser', views.getSystemUser),
     # 删除系统用户
@@ -30,6 +28,11 @@ urlpatterns = [
     path('downloadexcelstu', views.downloadExcelStu),
     # 导入excel 学生
     path('uploadexcelstu', views.uploadExcelStu),
-    #获取登陆用户信息
-    path('getcurrentuser',views.getCurrentUser)
+    # 获取登陆用户信息
+    path('getcurrentuser', views.getCurrentUser),
+    # 获取设备列表
+    path('getequipment', views.getEquipmentData),
+    path('createequipment', views.createEquipment),
+    path('deleteequipment', views.deleteEquipment),
+    path('updateequipment', views.updateEquipment),
 ]

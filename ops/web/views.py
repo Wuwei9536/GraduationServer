@@ -102,7 +102,11 @@ def deleteSystemUser(request):
 def updateSystemUser(request):
     # request.body 是二进制数据， json.loads转换未json格式
     params = json.loads(request.body)
-    res = UserSystem.manager.filter(id=params['id'])
+    if 'id' in params:
+        paramsId = params['id']
+    else:
+        paramsId = request.COOKIES['user_id']
+    res = UserSystem.manager.filter(id=paramsId)
     # 序列化必须在res.delete之前，否则res就不存在了。
     resData = UserSystemSerializer(res, many=True)
     systemUser = res.update(**params)  # **就是js里的...
@@ -178,20 +182,6 @@ def uploadExcel(request):
 
         return JsonResponse({'message': '导入成功'}, safe=False)
 
-
-@csrf_exempt
-# equipment
-def getEquipmentData(request):  # param equip_name:设备名称 status：使用状态
-    # params = request.GET
-    equipments = Equipment.manager.all()  # 遍历到底是遍历queryset呢还是序列化后的data呢
-    equipmentsSerializer = EquipmentSerializer(equipments, many=True)
-    for item in equipmentsSerializer.data:
-        cpu = Cpu.manager.filter(equip_id=item['id'])
-        cpuSerializer = CpuSerializer(cpu, many=True)
-        timeArray = time.strptime(
-            cpuSerializer.data[0]['check_time'], '%Y-%m-%dT%H:%M:%S')  # 东八区时间转换成时间元组
-        timestamp = time.mktime(timeArray)*1000  # 时间元组转换成时间戳（以秒为单位）所以要乘以1000
-    return JsonResponse(cpuSerializer.data, safe=False)
 
 
 # 拉取学生用户
@@ -332,3 +322,68 @@ def uploadExcelStu(request):
                 return JsonResponse({'message': '导入失败', 'detail': '上传文件类型错误！'}, safe=False)
 
         return JsonResponse({'message': '导入成功'}, safe=False)
+
+
+
+# 获取设备
+@csrf_exempt
+def getEquipmentData(request):  # param equip_name:设备名称 status：使用状态
+    # params = request.GET
+    equipments = Equipment.manager.all()  # 遍历到底是遍历queryset呢还是序列化后的data呢
+    equipmentsSerializer = EquipmentSerializer(equipments, many=True)
+    # for item in equipmentsSerializer.data:
+    #     cpu = Cpu.manager.filter(equip_id=item['id'])
+    #     cpuSerializer = CpuSerializer(cpu, many=True)
+    #     timeArray = time.strptime(
+    #         cpuSerializer.data[0]['check_time'], '%Y-%m-%dT%H:%M:%S')  # 东八区时间转换成时间元组
+    #     timestamp = time.mktime(timeArray)*1000  # 时间元组转换成时间戳（以秒为单位）所以要乘以1000
+    res = []
+    for item in equipmentsSerializer.data:
+        res.append({
+            'key': item['id'],
+            'name': item['equip_name'],
+            'ip': item['ip'],
+            'type': item['node_type'],
+            'model': item['cpu_model'],
+            'cpu': 1,
+            'number':item['core_num'],
+            'storage': item['storage'],
+            'disk': item['disk'],
+            'software': 1,
+            'agent': item['isagent'],
+        })
+    return JsonResponse(res, safe=False)
+
+# 新建设备
+@csrf_exempt
+def createEquipment(request):
+    params = json.loads(request.body)
+    print(params)
+    Equipment.manager.create(**params)
+    equipment = Equipment.manager.filter(equip_name=params['equip_name'])
+    equipmentSerializer = EquipmentSerializer(equipment, many=True)
+    return JsonResponse(equipmentSerializer.data, safe=False)
+
+# 删除设备
+@csrf_exempt
+def deleteEquipment(request):
+    params = request.GET
+    res = Equipment.manager.filter(id=params['id'])
+    # 序列化必须在res.delete之前，否则res就不存在了。
+    resData = EquipmentSerializer(res, many=True)
+    res.delete()
+    return JsonResponse(resData.data, safe=False)
+
+# 更新设备
+
+@csrf_exempt
+def updateEquipment(request):
+    # request.body 是二进制数据， json.loads转换未json格式
+    params = json.loads(request.body)
+    print(params)
+    res = Equipment.manager.filter(id=params['id'])
+    # 序列化必须在res.delete之前，否则res就不存在了。
+    resData = EquipmentSerializer(res, many=True)
+    res.update(**params)  # **就是js里的...
+    return JsonResponse(resData.data, safe=False)
+

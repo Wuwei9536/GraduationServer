@@ -97,7 +97,7 @@ class Equipment(models.Model):
     # 磁盘空间
     disk = models.IntegerField()
     # 是否安装agent
-    isagent = models.BooleanField(default=False)
+    isagent = models.IntegerField(default=0)
     # 备注
     remarks = models.CharField(max_length=255)
     create_time = models.DateTimeField(auto_now_add=True)
