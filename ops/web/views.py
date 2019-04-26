@@ -3,8 +3,8 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
-from web.models import UserSystem, Equipment, Cpu, UserStudent
-from web.serializers import UserSystemSerializer, EquipmentSerializer, CpuSerializer, UserStudentSerializer
+from web.models import UserSystem, Equipment, Cpu, UserStudent, Storage, Disk,Software
+from web.serializers import UserSystemSerializer, EquipmentSerializer, CpuSerializer, UserStudentSerializer, DiskSerializer, StorageSerializer, SoftwareSerializer
 from io import BytesIO
 from datetime import datetime
 from django.db import transaction
@@ -24,7 +24,7 @@ def login(request):
     systemUserSerializer = UserSystemSerializer(
         systemUser, many=True)  # 序列化后的QuerySet对象    数据在 QuerySet.data 里
     if len(systemUser) > 0:  # 计算数组长度需要用QuerySet对象
-        userId=systemUserSerializer.data[0]['id']
+        userId = systemUserSerializer.data[0]['id']
         response = JsonResponse({'status': 'ok', 'data': systemUserSerializer.data,
                                  'currentAuthority': 'admin', 'type': params['type']}, safe=False)
         response.set_cookie('user_id', userId)
@@ -35,13 +35,12 @@ def login(request):
 # 获取登陆用户信息
 @csrf_exempt
 def getCurrentUser(request):
-    userId =request.COOKIES['user_id']
+    userId = request.COOKIES['user_id']
     systemUser = UserSystem.manager.filter(
         id=userId)  # QuerySet对象
     systemUserSerializer = UserSystemSerializer(
         systemUser, many=True)  # 序列化后的QuerySet对象    数据在 QuerySet.data 里
-    return JsonResponse(systemUserSerializer.data,safe=False)
-
+    return JsonResponse(systemUserSerializer.data, safe=False)
 
 
 # 注册 增加系统用户
@@ -181,7 +180,6 @@ def uploadExcel(request):
                 return JsonResponse({'message': '导入失败', 'detail': '上传文件类型错误！'}, safe=False)
 
         return JsonResponse({'message': '导入成功'}, safe=False)
-
 
 
 # 拉取学生用户
@@ -324,7 +322,6 @@ def uploadExcelStu(request):
         return JsonResponse({'message': '导入成功'}, safe=False)
 
 
-
 # 获取设备
 @csrf_exempt
 def getEquipmentData(request):  # param equip_name:设备名称 status：使用状态
@@ -346,7 +343,7 @@ def getEquipmentData(request):  # param equip_name:设备名称 status：使用�
             'type': item['node_type'],
             'model': item['cpu_model'],
             'cpu': 1,
-            'number':item['core_num'],
+            'number': item['core_num'],
             'storage': item['storage'],
             'disk': item['disk'],
             'software': 1,
@@ -376,6 +373,7 @@ def deleteEquipment(request):
 
 # 更新设备
 
+
 @csrf_exempt
 def updateEquipment(request):
     # request.body 是二进制数据， json.loads转换未json格式
@@ -387,3 +385,52 @@ def updateEquipment(request):
     res.update(**params)  # **就是js里的...
     return JsonResponse(resData.data, safe=False)
 
+
+# 获取cpu检测数据
+def getCpu(request):
+    params = request.GET
+    equip_id = params['id']
+    date = time.strftime('%Y-%m-%d', time.localtime(time.time()))  # 当前日期
+    cpu = Cpu.manager.filter(equip_id=equip_id, check_date=date)
+    cpuSerializer = CpuSerializer(cpu, many=True)
+    return JsonResponse(cpuSerializer.data, safe=False)
+
+# 获取storage检测数据
+
+
+def getStorage(request):
+    params = request.GET
+    equip_id = params['id']
+    date = time.strftime('%Y-%m-%d', time.localtime(time.time()))  # 当前日期
+    storage = Storage.manager.filter(equip_id=equip_id, check_date=date)
+    storageSerializer = StorageSerializer(storage, many=True)
+    return JsonResponse(storageSerializer.data, safe=False)
+
+# 获disk检测数据
+
+
+def getDisk(request):
+    params = request.GET
+    equip_id = params['id']
+    date = time.strftime('%Y-%m-%d', time.localtime(time.time()))  # 当前日期
+    disk = Disk.manager.filter(equip_id=equip_id, check_date=date)
+    diskSerializer = DiskSerializer(disk, many=True)
+    return JsonResponse(diskSerializer.data, safe=False)
+
+
+# 获软件数据
+
+def getSoftware(request):
+    params = request.GET
+    equip_id = params['id']
+    software = Software.manager.filter(equip_id=equip_id)
+    softwareSerializer = SoftwareSerializer(software, many=True)
+    res = []
+    for item in softwareSerializer.data:
+        res.append({
+            'key': item['id'],
+            'softName': item['soft_name'],
+            'logName': item['soft_log_name'],
+            'describe': item['describe'],
+        })
+    return JsonResponse(res, safe=False)

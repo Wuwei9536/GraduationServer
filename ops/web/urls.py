@@ -32,7 +32,18 @@ urlpatterns = [
     path('getcurrentuser', views.getCurrentUser),
     # 获取设备列表
     path('getequipment', views.getEquipmentData),
+    # 新建设备
     path('createequipment', views.createEquipment),
+    # 删除设备
     path('deleteequipment', views.deleteEquipment),
+    # 更新设备
     path('updateequipment', views.updateEquipment),
+    # 获取cpu数据
+    path('getcpu', views.getCpu),
+    # 获取storage数据
+    path('getstorage', views.getStorage),
+    # 获取disk数据
+    path('getdisk', views.getDisk),
+    # 获取软件数据
+    path('getsoftware', views.getSoftware),
 ]

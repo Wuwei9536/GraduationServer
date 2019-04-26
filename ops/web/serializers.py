@@ -26,19 +26,19 @@ class EquipmentSerializer(serializers.ModelSerializer):
 class CpuSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cpu
-        fields = ('id', 'equip_id', 'usage_rate', 'check_time')
+        fields = ('id', 'equip_id', 'usage_rate', 'check_date','create_time')
 
 
 class DiskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Disk
-        fields = ('id', 'equip_id', 'usage_rate', 'check_time')
+        fields = ('id', 'equip_id', 'usage_rate', 'check_date','create_time')
 
 
 class StorageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Storage
-        fields = ('id', 'equip_id', 'usage_rate', 'check_time')
+        fields = ('id', 'equip_id', 'usage_rate', 'check_date','create_time')
 
 
 class SoftwareSerializer(serializers.ModelSerializer):

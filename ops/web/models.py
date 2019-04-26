@@ -117,7 +117,7 @@ class Equipment(models.Model):
 class Cpu(models.Model):
     equip_id = models.IntegerField()
     usage_rate = models.FloatField()
-    check_time = models.DateTimeField()
+    check_date = models.DateField(auto_now_add=True)
     create_time = models.DateTimeField(auto_now_add=True)
     update_time = models.DateTimeField(auto_now=True)
 
@@ -135,7 +135,7 @@ class Cpu(models.Model):
 class Storage(models.Model):
     equip_id = models.IntegerField()
     usage_rate = models.FloatField()
-    check_time = models.DateTimeField()
+    check_date = models.DateField(auto_now_add=True)
     create_time = models.DateTimeField(auto_now_add=True)
     update_time = models.DateTimeField(auto_now=True)
 
@@ -153,7 +153,7 @@ class Storage(models.Model):
 class Disk(models.Model):
     equip_id = models.IntegerField()
     usage_rate = models.FloatField()
-    check_time = models.DateTimeField()
+    check_date = models.DateField(auto_now_add=True)
     create_time = models.DateTimeField(auto_now_add=True)
     update_time = models.DateTimeField(auto_now=True)
 
