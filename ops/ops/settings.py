@@ -25,11 +25,9 @@ SECRET_KEY = '8l*xj4xgch#na169-k12corty9zly%cggu4-nmsb@1%3%)ac9s'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
-CORS_ORIGIN_WHITELIST = (
-    'localhost:8000',
-)
+CORS_ORIGIN_WHITELIST = ()
 CORS_ALLOW_CREDENTIALS = True
 # Application definition
 
@@ -85,7 +83,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'ops',
         'USER': 'root',
-        'PASSWORD': 'root',
+        'PASSWORD': 'Ww5201314,,,,,,',
         'HOST': '',
         'PORT': '3306',
     }
