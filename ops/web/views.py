@@ -35,7 +35,11 @@ def login(request):
 # 获取登陆用户信息
 @csrf_exempt
 def getCurrentUser(request):
-    userId = request.COOKIES['user_id']
+    if 'user_id' in request.COOKIES: 
+        userId = request.COOKIES['user_id']
+    else:
+        res = []
+        return JsonResponse(res,safe=False)
     systemUser = UserSystem.manager.filter(
         id=userId)  # QuerySet对象
     systemUserSerializer = UserSystemSerializer(
