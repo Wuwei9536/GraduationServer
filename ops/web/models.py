@@ -7,11 +7,13 @@ from django.db import models
 
 
 class UserSystem(models.Model):
+    # 邮箱
+    email = models.CharField(max_length=30)
     # 姓名
     name = models.CharField(max_length=30)
     # 密码
     password = models.CharField(default='123456', max_length=20)
-    # 登陆状态 默认0：离线  1:登陆
+    # 登陆状态 默认0：离线  1:登陆  -1:未激活
     status = models.IntegerField(default=0)
     homedirectory = models.CharField(max_length=30, blank=True)
     groupname = models.CharField(max_length=30, blank=True)
@@ -203,7 +205,6 @@ class Software(models.Model):
         db_table = 'software'  # 自定义表名称
         verbose_name = '软件列表'  # 指定在admin管理界面中显示的名称
         ordering = ('create_time',)
-
 
 
 class SoftwareLog(models.Model):

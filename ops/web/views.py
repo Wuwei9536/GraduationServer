@@ -3,11 +3,12 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
-from web.models import UserSystem, Equipment, Cpu, UserStudent, Storage, Disk,Software
-from web.serializers import UserSystemSerializer, EquipmentSerializer, CpuSerializer, UserStudentSerializer, DiskSerializer, StorageSerializer, SoftwareSerializer
+from web.models import UserSystem, Equipment, Cpu, UserStudent, Storage, Disk, Software,LoginLog
+from web.serializers import UserSystemSerializer, EquipmentSerializer, CpuSerializer, UserStudentSerializer, DiskSerializer, StorageSerializer, SoftwareSerializer,LoginLogSerializer
 from io import BytesIO
 from datetime import datetime
 from django.db import transaction
+from django.core.mail import send_mail
 import time
 import json
 import xlwt
@@ -20,28 +21,39 @@ import xlrd
 def login(request):
     params = request.GET  # 获取Get参数
     systemUser = UserSystem.manager.filter(
-        name=params['userName'], password=params['password'])  # QuerySet对象
+        email=params['email'], password=params['password']).exclude(status=-1)  # QuerySet对象
     systemUserSerializer = UserSystemSerializer(
         systemUser, many=True)  # 序列化后的QuerySet对象    数据在 QuerySet.data 里
     if len(systemUser) > 0:  # 计算数组长度需要用QuerySet对象
+
+        systemUser.update(status=1)#在线
+
         userId = systemUserSerializer.data[0]['id']
         response = JsonResponse({'status': 'ok', 'data': systemUserSerializer.data,
                                  'currentAuthority': 'admin', 'type': params['type']}, safe=False)
-        response.set_cookie('user_id', userId)
+        response.set_cookie('user_id', userId)  # 设置cookie
         return response
     else:
         return JsonResponse({'status': 'error', 'data': '您还未注册', 'currentAuthority': 'guest', 'type': params['type']})
 
+# 登出
+@csrf_exempt
+def logout(request):
+    userId = request.COOKIES['user_id']
+    systemUser = UserSystem.manager.filter(id=userId)  # QuerySet对象
+    systemUser.update(status=0)
+    return HttpResponse('ok')
+
 # 获取登陆用户信息
 @csrf_exempt
 def getCurrentUser(request):
-    if 'user_id' in request.COOKIES: 
+    if 'user_id' in request.COOKIES:
         userId = request.COOKIES['user_id']
     else:
         res = []
-        return JsonResponse(res,safe=False)
+        return JsonResponse(res, safe=False)
     systemUser = UserSystem.manager.filter(
-        id=userId)  # QuerySet对象
+        id=userId).exclude(status=-1)  # QuerySet对象
     systemUserSerializer = UserSystemSerializer(
         systemUser, many=True)  # 序列化后的QuerySet对象    数据在 QuerySet.data 里
     return JsonResponse(systemUserSerializer.data, safe=False)
@@ -132,8 +144,9 @@ def downloadExcel(request):
 
     # 写入文件标题
     sheet.write(0, 0, '姓名')
-    sheet.write(0, 1, '主目录')
-    sheet.write(0, 2, '用户组')
+    sheet.write(0, 1, '邮箱')
+    sheet.write(0, 2, '主目录')
+    sheet.write(0, 3, '用户组')
 
     if(params['needData'] != 'false'):
         # 写入数据
@@ -144,8 +157,9 @@ def downloadExcel(request):
             # pri_time = i.pri_date.strftime('%Y-%m-%d')
             # oper_time = i.operating_time.strftime('%Y-%m-%d')
             sheet.write(data_row, 0, i.name)
-            sheet.write(data_row, 1, i.homedirectory)
-            sheet.write(data_row, 2, i.groupname)
+            sheet.write(data_row, 1, i.email)
+            sheet.write(data_row, 2, i.homedirectory)
+            sheet.write(data_row, 3, i.groupname)
             data_row = data_row + 1
 
     # 写出到IO
@@ -175,7 +189,7 @@ def uploadExcel(request):
                         for i in range(1, rows):
                             rowVlaues = table.row_values(i)
                             UserSystem.manager.create(
-                                name=rowVlaues[0], homedirectory=rowVlaues[1], groupname=rowVlaues[2])
+                                name=rowVlaues[0], email=rowVlaues[1], homedirectory=rowVlaues[2], groupname=rowVlaues[3])
                 except:
                     print('解析excel文件或者数据插入错误')
                     return JsonResponse({'message': '导入失败', 'detail': '解析excel文件或者数据插入错误'}, safe=False)
@@ -328,29 +342,67 @@ def uploadExcelStu(request):
 
 # 获取设备
 @csrf_exempt
-def getEquipmentData(request):  # param equip_name:设备名称 status：使用状态
-    # params = request.GET
-    equipments = Equipment.manager.all()  # 遍历到底是遍历queryset呢还是序列化后的data呢
+def getEquipmentData(request):  # param equip_name:设备名称 status：使用状态 0 1 2
+    params = json.loads(request.body)
+    if 'today' in params:
+        today = params['today']
+    else:
+        today = None
+
+    if 'name' in params and 'ip' in params:
+        equipments = Equipment.manager.filter(
+            equip_name=params['name'], ip=params['ip'])
+    elif 'name'in params:
+        equipments = Equipment.manager.filter(
+            equip_name=params['name'])  # 遍历到底是遍历queryset呢还是序列化后的data呢
+    elif 'ip' in params:
+        equipments = Equipment.manager.filter(ip=params['ip'])
+    else:
+        equipments = Equipment.manager.all()
+
     equipmentsSerializer = EquipmentSerializer(equipments, many=True)
-    # for item in equipmentsSerializer.data:
-    #     cpu = Cpu.manager.filter(equip_id=item['id'])
-    #     cpuSerializer = CpuSerializer(cpu, many=True)
-    #     timeArray = time.strptime(
-    #         cpuSerializer.data[0]['check_time'], '%Y-%m-%dT%H:%M:%S')  # 东八区时间转换成时间元组
-    #     timestamp = time.mktime(timeArray)*1000  # 时间元组转换成时间戳（以秒为单位）所以要乘以1000
+
     res = []
     for item in equipmentsSerializer.data:
+
+        cpu = Cpu.manager.filter(equip_id=item['id'], check_date=today)
+        cpulength = len(cpu)
+        if(cpulength > 0):
+            cpuSerializer = CpuSerializer(cpu, many=True)
+            cpuUseRate = cpuSerializer.data[cpulength - 1]['usage_rate']
+        else:
+            cpuUseRate = 0
+
+        storage = Storage.manager.filter(equip_id=item['id'], check_date=today)
+        storagelength = len(storage)
+        if(storagelength > 0):
+            storageSerializer = StorageSerializer(storage, many=True)
+            storageUseRate = storageSerializer.data[storagelength-1]['usage_rate']
+        else:
+            storageUseRate = 0
+
+        disk = Disk.manager.filter(equip_id=item['id'], check_date=today)
+        disklength = len(disk)
+        if(disklength > 0):
+            diskSerializer = DiskSerializer(disk, many=True)
+            diskUseRate = diskSerializer.data[disklength - 1]['usage_rate']
+        else:
+            diskUseRate = 0
+
+        software = Software.manager.filter(equip_id=item['id'])
+        softwarelen = len(software)
+
         res.append({
             'key': item['id'],
             'name': item['equip_name'],
             'ip': item['ip'],
             'type': item['node_type'],
             'model': item['cpu_model'],
-            'cpu': 1,
+            'cpu': cpuUseRate,
             'number': item['core_num'],
-            'storage': item['storage'],
-            'disk': item['disk'],
-            'software': 1,
+            'storage': storageUseRate,
+            'disk': diskUseRate,
+            'software': softwarelen,
             'agent': item['isagent'],
         })
     return JsonResponse(res, safe=False)
@@ -438,3 +490,55 @@ def getSoftware(request):
             'describe': item['describe'],
         })
     return JsonResponse(res, safe=False)
+
+# 发送邮件
+@csrf_exempt
+def registerEmail(request):
+    # request.body 是二进制数据， json.loads转换未json格式
+    params = json.loads(request.body)
+    mail = params['mail']
+    password = params['password']
+    name = params['name']
+
+    UserSystem.manager.create(name=name, email=mail,
+                              password=password, status=-1)
+    systemUser = UserSystem.manager.filter(email=mail)
+    systemUserSerializer = UserSystemSerializer(systemUser, many=True)
+    registerId = systemUserSerializer.data[0]['id']
+    msg = "<a href='http://njit.wwwien.top:8000/activeaccount?id={registerId}' target='_blank'>点击激活</a>".format(
+        registerId=registerId)
+    send_mail(
+        '大数据平台管理系统注册',
+        '请点击下方按钮激活',
+        '2268348563@qq.com',
+        [mail],
+        fail_silently=False,
+        html_message=msg
+    )
+    return JsonResponse({'status': 'ok'}, safe=False)
+
+# 激活
+@csrf_exempt
+def activeAccount(request):
+    params = request.GET
+    UserSystem.manager.filter(id=params['id']).update(status=0)  # 根据id激活
+    return JsonResponse({'status': 'ok'}, safe=False)
+
+# 测试
+@csrf_exempt
+def test(request):
+    print('path:',request.path)
+    print('request.user:',request.user)
+    print()
+    print()
+    print()
+    print()
+    print('request.META',request.META)
+    print("ip:",request.META.get('REMOTE_ADDR'))
+    return HttpResponse('ok')
+    # for item in equipmentsSerializer.data:
+    #     cpu = Cpu.manager.filter(equip_id=item['id'])
+    #     cpuSerializer = CpuSerializer(cpu, many=True)
+    #     timeArray = time.strptime(
+    #         cpuSerializer.data[0]['check_time'], '%Y-%m-%dT%H:%M:%S')  # 东八区时间转换成时间元组
+    #     timestamp = time.mktime(timeArray)*1000  # 时间元组转换成时间戳（以秒为单位）所以要乘以1000

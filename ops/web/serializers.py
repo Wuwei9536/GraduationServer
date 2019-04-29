@@ -5,7 +5,7 @@ from .models import UserSystem, UserStudent, LoginLog, Software, SoftwareLog, St
 class UserSystemSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserSystem
-        fields = ('id', 'name', 'status',
+        fields = ('id', 'email','name', 'status',
                   'homedirectory', 'groupname')
 
 
