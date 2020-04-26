@@ -141,10 +141,10 @@ EMAIL_HOST = 'smtp.qq.com'
 # smtp服务固定的端口是25 =>云服务器默认关闭25端口
 EMAIL_PORT = 465
 #发送邮件的邮箱
-EMAIL_HOST_USER = '2268348563@qq.com'
+EMAIL_HOST_USER = '@qq.com'
 #在邮箱中设置的客户端授权密码
-EMAIL_HOST_PASSWORD = 'kkylhmkvdwoeebgf'
+EMAIL_HOST_PASSWORD = ''
 #收件人看到的发件人 <此处要和发送邮件的邮箱相同>
-EMAIL_FROM = 'python<2268348563@qq.com>'
+EMAIL_FROM = 'python<@qq.com>'
 
 EMAIL_USE_TLS = True   #是否使用TLS安全传输协议(用于在两个通信应用程序之间提供保密性和数据完整性。)
